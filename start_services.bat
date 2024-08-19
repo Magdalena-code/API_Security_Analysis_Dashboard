@@ -25,26 +25,29 @@ if %errorlevel% neq 0 (
 REM Initialize Database (No output)
 echo Initializing Database...
 set PROJECT_DIR=%~dp0
-cd /d "%PROJECT_DIR%backend"
+cd /d "%PROJECT_DIR%pythonBackend"
 call .venv\Scripts\activate
 python Initialize_Database.py >nul 2>&1
 
 REM Start API
 echo Starting API...
-cd /d "%PROJECT_DIR%backend"
-call .venv\Scripts\activate
+cd /d "%PROJECT_DIR%pythonBackend"
+REM Ensure the virtual environment is still active
+if not defined VIRTUAL_ENV (
+    call .venv\Scripts\activate
+)
 start /B python API.py > api.log 2>&1
 
 REM Start Data Scanner
 echo Starting Data Scanner...
-cd /d "%PROJECT_DIR%backend"
+cd /d "%PROJECT_DIR%pythonBackend"
 call .venv\Scripts\activate
 start /B python Insert_Real_Data.py > data_scanner.log 2>&1
 
 REM Start Frontend
 echo Starting Frontend...
 cd /d "%PROJECT_DIR%frontend"
-start /B npm start > frontend.log 2>&1
+start /B npm run dev > frontend.log 2>&1
 
 echo All services started
 echo Access the API-Security-Analysis-Dashboard here: http://localhost:5173/.
