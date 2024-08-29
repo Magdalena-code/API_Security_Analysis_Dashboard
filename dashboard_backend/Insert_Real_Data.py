@@ -55,28 +55,16 @@ class MyHandler(FileSystemEventHandler):
 
         vuln_owasp_mapping = pd.read_excel('owasp_mapping.xlsx')
 
-        scan_tool_name = data.get('@programName', 'Unknown Tool')
-        scan_date = datetime.strptime(data.get('@generated', 'Thu, 01 Jan 1970 00:00:00'), '%a, %d %b %Y %H:%M:%S')
+        scan_tool_name = data.get('@programName')
+        scan_date = datetime.strptime(data.get('@generated'), '%a, %d %b %Y %H:%M:%S')
 
-        # Default URL and port
-        scan_url = 'http://localhost:80'
-
-        # Process each site entry
         for site_info in data.get('site', []):
-            base_url = site_info.get('@name', 'http://localhost')
-            port = site_info.get('@port', '80')
+            base_url = site_info.get('@name')
+            port = site_info.get('@port')
 
-            # Check if base_url already contains a port
             if ':' in base_url:
-                # Split base_url into URL and port
-                base_url_parts = re.match(r'(.*):(\d+)', base_url)
-                if base_url_parts:
-                    base_url = base_url_parts.group(1)
-                    port = base_url_parts.group(2)
-                # URL with port
-                scan_url = f"{base_url}:{port}"
+                scan_url = base_url
             else:
-                # Append port if not present in base_url
                 if base_url.endswith('/'):
                     scan_url = f"{base_url[:-1]}:{port}"
                 else:

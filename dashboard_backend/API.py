@@ -8,11 +8,41 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from flask.cli import load_dotenv
+from flasgger import Swagger
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for the API
+
+swagger_config = {
+    "swagger": "2.0",
+    "info": {
+        "title": "API Security Analysis Dashboard",
+        "description": "This is the API documentation for the Flask application of the API Security Analysis Dashboard.",
+        "version": "1.0.0",
+    },
+    "host": "localhost:5000",
+    "basePath": "/",
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,  # all in
+            "model_filter": lambda tag: True,  # all in
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/",
+    "headers": []  # Ensure this key is set, even if it's an empty list
+}
+
+Swagger(app, swagger_config)
 
 app.config['UPLOAD_FOLDER'] = os.getenv('INPUT')
 output_directory = os.getenv('OUTPUT')
@@ -57,6 +87,68 @@ def allowed_file(filename):
 
 @app.route('/vulnerabilities', methods=['GET'])
 def get_vulnerabilities():
+    """
+       Retrieves a list of vulnerabilities.
+       ---
+       parameters:
+         - name: scan_url
+           in: query
+           type: string
+           required: false
+           description: The URL of the scan to filter by.
+         - name: scan_id
+           in: query
+           type: string
+           required: false
+           description: The ID of the scan to filter by.
+       responses:
+         200:
+           description: A list of vulnerabilities
+           schema:
+             type: array
+             items:
+               type: object
+               properties:
+                 scan_id:
+                   type: integer
+                   example: 1
+                 scan_date:
+                   type: string
+                   example: "Thu, 22 Aug 2024 08:39:42"
+                 scan_url:
+                   type: string
+                   example: "http://example.com"
+                 tool_name:
+                   type: string
+                   example: "ZAP"
+                 vuln_name:
+                   type: string
+                   example: "SQL Injection"
+                 vuln_number:
+                   type: string
+                   example: "3"
+                   description: The number of the same vulnerability in the same.
+                 prio_name:
+                   type: string
+                   example: "high"
+                 owasp_name:
+                   type: string
+                   example: "API1 - Broken Object Level Authorization"
+                 vuln_id:
+                   type: integer
+                   example: 1
+                 scan_active:
+                   type: boolean
+                   example: true
+                   description: Indicates if the vulnerability was found in an active or passive scan.
+                 vuln_description:
+                   type: string
+                   example: "SQL Injection is a code injection technique that might destroy your database."
+                 vuln_new:
+                   type: boolean
+                   example: true
+                   description: Indicates if the vulnerability was found in the same API in the last month.
+       """
     connection, cursor = connect_to_db(db_params_1)
     if connection is None or cursor is None:
         return jsonify({"error": "Unable to connect to the database"})
@@ -119,6 +211,69 @@ def get_vulnerabilities():
 
 @app.route('/scans', methods=['GET'])
 def get_scans():
+    """
+        Retrieves a list of scans.
+        ---
+        parameters:
+          - name: scan_url
+            in: query
+            type: string
+            required: false
+            description: "The URL of the scan to filter by."
+          - name: scan_date
+            in: query
+            type: string
+            required: false
+            description: "The date of the scan to filter by (format: YYYY-MM-DD)."
+        responses:
+          200:
+            description: "A list of scans."
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  scan_id:
+                    type: integer
+                    example: 1
+                    description: "The unique identifier for the scan."
+                  scan_date:
+                    type: string
+                    example: "Thu, 22 Aug 2024 08:39:42"
+                    description: "The date and time when the scan was performed."
+                  scan_url:
+                    type: string
+                    example: "http://example.com"
+                    description: "The URL that was scanned."
+                  tool_name:
+                    type: string
+                    example: "ZAP"
+                    description: "The name of the tool used to perform the scan."
+                  scan_active:
+                    type: boolean
+                    example: true
+                    description: "Indicates whether the scan was an active scan."
+          400:
+            description: "Bad Request. The parameters provided were invalid."
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: "Invalid parameters"
+          500:
+            description: "Internal Server Error. There was an error processing the request."
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: "Error executing query: [detailed error message]"
+        """
     connection, cursor = connect_to_db(db_params_1)
     if connection is None or cursor is None:
         return jsonify({"error": "Unable to connect to the database"})
@@ -174,6 +329,49 @@ def get_scans():
 
 @app.route('/run-passive-scan', methods=['POST'])
 def run_docker_passive():
+    """
+        Runs a passive API security scan on the provided URL using OWASP ZAP.
+        ---
+        parameters:
+          - name: url
+            in: body
+            required: true
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  example: "http://example.com"
+                  description: The URL to scan.
+        responses:
+          200:
+            description: The URL was successfully scanned.
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "URL successfully scanned"
+          400:
+            description: Bad Request. The URL is missing from the request.
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "URL is missing"
+          500:
+            description: Internal Server Error. The scan failed or an unexpected error occurred.
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Scan failed"
+                details:
+                  type: string
+                  example: "Detailed error message"
+        """
     data = request.json
     if 'url' not in data:
         return jsonify({"error": "URL is missing"}), 400
@@ -217,6 +415,46 @@ def run_docker_passive():
 
 @app.route('/run-active-scan', methods=['POST'])
 def run_docker_active():
+    """
+       Runs an active API security scan on the provided OpenAPI file using OWASP ZAP.
+       ---
+       consumes:
+         - multipart/form-data
+       parameters:
+         - name: file
+           in: formData
+           type: file
+           required: true
+           description: The OpenAPI file to use for the active scan. Must be a JSON file.
+       responses:
+         200:
+           description: The URL was successfully scanned.
+           schema:
+             type: object
+             properties:
+               message:
+                 type: string
+                 example: "URL successfully scanned"
+         400:
+           description: Bad Request. The file is missing or invalid.
+           schema:
+             type: object
+             properties:
+               error:
+                 type: string
+                 example: "No file part"
+         500:
+           description: Internal Server Error. The scan failed or an unexpected error occurred.
+           schema:
+             type: object
+             properties:
+               error:
+                 type: string
+                 example: "Scan failed"
+               details:
+                 type: string
+                 example: "Detailed error message"
+       """
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
     file = request.files['file']
@@ -269,6 +507,56 @@ def run_docker_active():
 
 @app.route('/vulnerability_trend', methods=['GET'])
 def get_vulnerability_trend():
+    """
+       Retrieves the trend of vulnerabilities over time for a specific scan URL.
+       ---
+       parameters:
+         - name: scan_url
+           in: query
+           type: string
+           required: true
+           description: The URL of the scan for which to retrieve vulnerability trends.
+       responses:
+         200:
+           description: A trend of vulnerabilities over time.
+           schema:
+             type: object
+             properties:
+               scan_date:
+                 type: array
+                 items:
+                   type: string
+                   format: date
+                   example: "2023-08-01"
+               scan_active:
+                 type: array
+                 items:
+                   type: boolean
+                   example: True
+                   description: Indicates if the vulnerability was found in an active or passive scan.
+               vuln_category:
+                 type: array
+                 items:
+                   type: integer
+                   example: 5
+                 description: Number of vulnerabilities in a specific OWASP category on the given date.
+         400:
+           description: Bad Request. The `scan_url` parameter is missing.
+           schema:
+             type: object
+             properties:
+               error:
+                 type: string
+                 example: "Missing scan_url parameter"
+         500:
+           description: Internal Server Error. There was an error processing the request.
+           schema:
+             type: object
+             properties:
+               error:
+                 type: string
+                 example: "Error executing query: [detailed error message]"
+       """
     connection, cursor = connect_to_db(db_params_1)
     if connection is None or cursor is None:
         return jsonify({"error": "Unable to connect to the database"})
@@ -332,6 +620,65 @@ def get_vulnerability_trend():
 
 @app.route('/customisation', methods=['GET'])
 def get_customisation():
+    """
+       Retrieves customisation data based on user ID and/or OWASP category.
+       ---
+       parameters:
+         - name: user_id
+           in: query
+           required: false
+           description: The ID of the user to filter the customisation data.
+           schema:
+             type: string
+             example: "user_123"
+         - name: owasp_cat
+           in: query
+           required: false
+           description: The OWASP category to filter the customisation data.
+           schema:
+             type: string
+             example: "API1 - Broken Object Level Authorization"
+       responses:
+         200:
+           description: A list of customisation data.
+           schema:
+             type: array
+             items:
+               type: object
+               properties:
+                user_id:
+                    type: string
+                    description: The ID of the user.
+                    example: "user_123"
+                owasp_cat:
+                    type: string
+                    description: The OWASP category.
+                    example: "API1 - Broken Object Level Authorization"
+                weight:
+                    type: number
+                    description: The weight assigned to the OWASP category for the user.
+                    example: 10
+         400:
+           description: Bad Request. There was an issue with the request parameters.
+           content:
+             application/json:
+               schema:
+                 type: object
+                 properties:
+                   error:
+                     type: string
+                     example: "Invalid parameters"
+         500:
+           description: Internal Server Error. There was an error processing the request.
+           content:
+             application/json:
+               schema:
+                 type: object
+                 properties:
+                   error:
+                     type: string
+                     example: "Error executing query: [detailed error message]"
+       """
     connection, cursor = connect_to_db(db_params_2)
     if connection is None or cursor is None:
         return jsonify({"error": "Unable to connect to the database"})
@@ -389,6 +736,63 @@ def get_customisation():
 
 @app.route('/customisation', methods=['POST'])
 def update_customisation():
+    """
+        Updates customisation data for a user based on OWASP category.
+        ---
+        parameters:
+          - in: body
+            name: customisations
+            required: true
+            description: A list of customisation objects to update.
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    description: The ID of the user.
+                    example: "user_123"
+                  owasp_cat:
+                    type: string
+                    description: The OWASP category to update.
+                    example: "API1 - Broken Object Level Authorization"
+                  weight:
+                    type: number
+                    description: The new weight to assign to the OWASP category for the user.
+                    example: 15
+        responses:
+          200:
+            description: Successfully updated customisation data.
+            schema:
+             type: array
+             items:
+               type: object
+               properties:
+                    status:
+                      type: string
+                      example: "success"
+          400:
+            description: Bad Request. The request data was invalid.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: "Invalid input data"
+          500:
+            description: Internal Server Error. There was an error processing the request.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: "Error executing query: [detailed error message]"
+        """
     data = request.json
     connection, cursor = connect_to_db(db_params_2)
     if connection is None or cursor is None:
