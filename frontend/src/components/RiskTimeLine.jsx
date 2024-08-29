@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 function RiskTimeline({ scanUrl, currentScanDate, weights }) {
     const svgRef = useRef(null);
@@ -251,7 +252,7 @@ function RiskTimeline({ scanUrl, currentScanDate, weights }) {
                 d3.select('#tooltip').style('visibility', 'hidden');
             })
             .on('click', (event, d) => {
-                const scanDetailsUrl = `http://localhost:5173/scan/${d.scan_id}`;
+                const scanDetailsUrl = `${BASE_URL}/scan/${d.scan_id}`;
                 window.location.href = scanDetailsUrl;
             });
 

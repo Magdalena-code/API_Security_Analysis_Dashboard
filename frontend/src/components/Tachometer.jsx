@@ -32,11 +32,12 @@ function Tachometer({ vulnerabilities, weights }) {
 
     const calculateRiskScore = (vulnerability) => {
         const priorityOrder = { 'high': 4, 'medium': 3, 'low': 2, 'informational': 1 };
-        const priority = priorityOrder[vulnerability.prio_name ? vulnerability.prio_name.toLowerCase() : 'informational'] || 0;
+        const priority = priorityOrder[vulnerability.prio_name ? vulnerability.prio_name.toLowerCase() : 'no Priority'] || 0;
         const weight = vulnerability.highestWeight || 0;
 
         return priority * weight;
     };
+
 
     useEffect(() => {
         const width = 600;
@@ -52,7 +53,6 @@ function Tachometer({ vulnerabilities, weights }) {
 
         const scalingFactor = 1 + (uniqueVulnerabilities.length - 1) * 0.5;
 
-// Adjusted risk score with scaling factor so that the more vulnerabilities the higher the risk score is
         const adjustedRiskScore = totalBaseRiskScore * scalingFactor;
 
         const maxPriority = 4;

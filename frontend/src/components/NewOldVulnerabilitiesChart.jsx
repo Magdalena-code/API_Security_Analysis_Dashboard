@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 function NewOldVulnerabilitiesChart({ scanUrl, currentScanDate }) {
     const svgRef = useRef(null);
@@ -154,7 +155,7 @@ function NewOldVulnerabilitiesChart({ scanUrl, currentScanDate }) {
             .attr('height', d => height - y(d.new_vulnerabilities))
             .attr('fill', d => d.date.toISOString().split('T')[0] === currentScanDate ? '#39FF14' : 'darkgreen')  // Highlight current scan date
             .on('click', (event, d) => {
-                const scanDetailsUrl = `http://localhost:5173/scan/${d.scan_id}`;
+                const scanDetailsUrl = `${BASE_URL}/scan/${d.scan_id}`;
                 window.location.href = scanDetailsUrl;
             });
 
