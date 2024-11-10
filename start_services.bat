@@ -19,7 +19,7 @@ docker inspect -f "{{.State.Running}}" master-postgres 2>nul | findstr /R /C:"tr
 if %errorlevel% neq 0 (
     REM Start Docker container
     echo Starting Docker container...
-    docker run --name master-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d magdalenacode/masterthesis:latest
+    docker run --rm --name master-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d magdalenacode/masterthesis:latest
 )
 
 REM Initialize Database (No output)
