@@ -14,13 +14,28 @@ if %errorlevel% neq 0 (
     docker pull magdalenacode/masterthesis:latest
 )
 
-REM Check if the Docker container is already running
-docker inspect -f "{{.State.Running}}" master-postgres 2>nul | findstr /R /C:"true" >nul
-if %errorlevel% neq 0 (
-    REM Start Docker container
-    echo Starting Docker container...
-    docker run --rm --name master-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d magdalenacode/masterthesis:latest
+REM Check if the container exists but is stopped
+docker inspect -f "{{.State.Status}}" master-postgres 2>nul | findstr /C:"exited" >nul
+if %errorlevel% equ 0 (
+    echo Container "master-postgres" is stopped. Restarting...
+    docker start master-postgres
+    goto skipRunContainer
 )
+
+REM Check if the container is running
+docker inspect -f "{{.State.Running}}" master-postgres 2>nul | findstr /C:"true" >nul
+if %errorlevel% equ 0 (
+    echo Container "master-postgres" is already running.
+    goto skipRunContainer
+)
+
+REM If the container doesn't exist, run a new one
+echo Starting Docker container...
+docker run --name master-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d magdalenacode/masterthesis:latest
+
+:skipRunContainer
+
+timeout /t 5 >nul
 
 REM Initialize Database (No output)
 echo Initializing Database...
